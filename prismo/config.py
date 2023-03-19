@@ -13,6 +13,8 @@ class BotConfig:
     except KeyError:
         raise RuntimeError("BOT_TOKEN not found on enviroment variables")
     
+    github_token = environ.get("GITHUB_TOKEN", "")
+    
     log_level = environ.get("LOG_LEVEL", "DEBUG")
     github_repository = "https://github.com/RobertCraigie/prismo"
     support_server_id = 933860922039099444

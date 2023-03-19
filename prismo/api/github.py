@@ -1,14 +1,25 @@
 from __future__ import annotations
-from typing import ClassVar, Optional, TYPE_CHECKING, List
+from typing import ClassVar, Optional, TYPE_CHECKING, List, Tuple
 
 import attrs
 import enum
 
+
 from aiohttp import ClientSession
-from utils import convert_to_date
+from disnake import Event
+from disnake.ext import commands
+
+from .utils import convert_to_date
 
 if TYPE_CHECKING:
     from datetime import datetime
+    from ..bot import PrismoBot
+
+__all__: Tuple[str, ...] = (
+    "GitHubInfoType",
+    "GitHubUserType",
+    "GitHubAPIClient",
+)
 
 
 class GitHubInfoType(enum.Enum):
@@ -163,18 +174,3 @@ class GitHubAPIClient:
                 profile_url=author.get("html_url"),
             ),
         )
-
-
-
-
-import asyncio
-
-g = GitHubAPIClient()
-async def main():
-    await g.setup("my_token")
-    #r = await g.fetch_issue_or_pr("DisnakeDev", "disnake", "982")
-    r = await g.fetch_repository(owner="DisnakeDev", repo_name="disnake")
-    print(r)
-    await g.close()
-
-asyncio.run(main())

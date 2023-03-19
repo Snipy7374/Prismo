@@ -3,11 +3,12 @@ import datetime
 
 from pathlib import Path
 
-from prisma import Client as Prisma
+from prisma import Client as Prisma  # type: ignore
 from prisma.errors import ClientNotRegisteredError
 from disnake.ext import commands
 
 from config import BotConfig
+from api import GitHubAPIClient
 
 
 class PrismoBot(commands.Bot):
@@ -20,7 +21,8 @@ class PrismoBot(commands.Bot):
         )
 
         self._setup_logging()
-        self.prismo_extensions = {"exts", }
+        self.prismo_extensions = {"exts",}
+        self.github_client = GitHubAPIClient()
 
     def _setup_logging(self) -> None:
         self.logger = logging.getLogger("disnake")
@@ -40,16 +42,22 @@ class PrismoBot(commands.Bot):
     # that many
     async def on_connect(self) -> None:
         self.prisma_client = Prisma(auto_register=True)
-        self.logger.debug("Connecting to the database")
+        self.logger.info("Connecting to the database")
         await self.prisma_client.connect()
+
+        self.logger.info("Setting up github client")
+        await self.github_client.setup(BotConfig.github_token)
 
     async def on_disconnect(self) -> None:
         try:
             if self.prisma_client.is_connected():
-                self.logger.debug("Disconnecting from the database")
+                self.logger.info("Disconnecting from the database")
                 await self.prisma_client.disconnect()
         except ClientNotRegisteredError:
             pass
+
+        self.logger.info("Closing the github client")
+        await self.github_client.close()
 
     async def start(self) -> None:  # type: ignore
         # we'll use this start time later in the ping command :)
