@@ -8,8 +8,8 @@ from prisma.errors import ClientNotRegisteredError
 from disnake.ext import commands
 
 from config import BotConfig
-from api import GitHubAPIClient
 
+_log = logging.getLogger(__name__)
 
 class PrismoBot(commands.Bot):
     def __init__(self) -> None:
@@ -22,18 +22,12 @@ class PrismoBot(commands.Bot):
 
         self._setup_logging()
         self.prismo_extensions = {"exts",}
-        self.github_client = GitHubAPIClient()
 
     def _setup_logging(self) -> None:
-        self.logger = logging.getLogger("disnake")
-        self.logger.setLevel(BotConfig.log_level)
-        self.handler = logging.StreamHandler()
-        self.handler.setFormatter(logging.Formatter(
-            "%(asctime)s:%(levelname)s:%(name)s: %(message)s"))
-        self.logger.addHandler(self.handler)
+        logging.basicConfig(level=BotConfig.log_level, format="%(asctime)s:%(levelname)s:%(name)s: %(message)s")
 
     async def on_ready(self) -> None:
-        self.logger.info("Logged in as %s", self.user)
+        _log.info("Logged in as %s", self.user)
 
     # note that on_connect and on_disconnect are both called multiple times during bot's
     # lifetime; the reason is that disnake implements reconnection logic
@@ -42,27 +36,21 @@ class PrismoBot(commands.Bot):
     # that many
     async def on_connect(self) -> None:
         self.prisma_client = Prisma(auto_register=True)
-        self.logger.info("Connecting to the database")
+        _log.info("Connecting to the database")
         await self.prisma_client.connect()
-
-        self.logger.info("Setting up github client")
-        await self.github_client.setup(BotConfig.github_token)
 
     async def on_disconnect(self) -> None:
         try:
             if self.prisma_client.is_connected():
-                self.logger.info("Disconnecting from the database")
+                _log.info("Disconnecting from the database")
                 await self.prisma_client.disconnect()
         except ClientNotRegisteredError:
             pass
 
-        self.logger.info("Closing the github client")
-        await self.github_client.close()
-
     async def start(self) -> None:  # type: ignore
         # we'll use this start time later in the ping command :)
         self.start_time = datetime.datetime.utcnow()
-        self.logger.info("Starting the bot")
+        _log.info("Starting the bot")
         self.load_ext()
 
         await super().start(BotConfig.token, reconnect=True)
@@ -71,5 +59,5 @@ class PrismoBot(commands.Bot):
         for extension_path in self.prismo_extensions:
             path = Path(extension_path).absolute()
             self.load_extensions(path.as_posix())
-            self.logger.info(
+            _log.info(
                 "%s extension was successfully loaded", extension_path)
